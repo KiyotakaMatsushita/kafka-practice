@@ -95,6 +95,8 @@ func (consumer *Consumer) processMessage(message *sarama.ConsumerMessage) error 
 	logger.Printf("Received message: topic=%v, partition=%v, offset=%v, key=%s, value=%s\n",
 		message.Topic, message.Partition, message.Offset, string(message.Key), string(message.Value))
 
+	// わざとpanicを起こす
+	panic("panic")
 	var data map[string]interface{}
 	err := json.Unmarshal(message.Value, &data)
 	if err != nil {

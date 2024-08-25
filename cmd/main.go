@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"kafka-sarama-example/internal/consumer"
-	"kafka-sarama-example/internal/producer"
 	"os"
 	"sync"
 
@@ -20,12 +19,12 @@ func main() {
 	flag.Parse()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(1)
 
-	go func() {
-		defer wg.Done()
-			producer.Run(*brokers, *version, *topic)
-	}()
+	// go func() {
+	// 	defer wg.Done()
+	// 		producer.Run(*brokers, *version, *topic)
+	// }()
 
 	go func() {
 		defer wg.Done()
