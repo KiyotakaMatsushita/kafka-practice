@@ -29,7 +29,7 @@ func Run(brokers, version, topic string) {
 
 	config := sarama.NewConfig()
 	config.Version = kafkaVersion
-	config.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+	config.Consumer.Group.Rebalance.Strategy = sarama.NewBalanceStrategyRoundRobin()
 
 	consumer := Consumer{
 		ready: make(chan bool),
