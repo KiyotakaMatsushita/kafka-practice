@@ -1,12 +1,12 @@
 services:
   zookeeper:
-    image: zookeeper:latest
+    image: zookeeper:3.6.0
     ports:
       - "2181:2181"
     networks:
       - kafka-cluster
   broker:
-    image: apache/kafka:latest
+    image: apache/kafka:3.6.0
     container_name: broker
     ports:
       - "9092:9092"
@@ -25,6 +25,8 @@ services:
       KAFKA_NUM_PARTITIONS: 3
     depends_on:
       - zookeeper
+    networks:
+      - kafka-cluster
   go-app:
     build:
       context: .
@@ -33,6 +35,8 @@ services:
       - KAFKA_BROKERS=broker:9092
     depends_on:
       - broker
+    networks:
+      - kafka-cluster
 
 networks:
   kafka-cluster:
