@@ -82,7 +82,7 @@ func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
 
 func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	for message := range claim.Messages() {
-		err := consumer.processMessage(message)
+		err := consumer.processMessageSafely(message)
 		if err != nil {
 			logger.Printf("Error processing message: %v", err)
 		}
@@ -91,12 +91,35 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	return nil
 }
 
+func (consumer *Consumer) processMessageSafely(message *sarama.ConsumerMessage) error {
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					lastErr = fmt.Errorf("panic occurred: %v", r)
+				}
+			}()
+			lastErr = consumer.processMessage(message)
+		}()
+		if lastErr == nil {
+			return nil
+		}
+		logger.Printf("Failed to process message after 3 attempts: %v. Message: topic=%v, partition=%v, offset=%v, key=%s, value=%s",
+			lastErr, message.Topic, message.Partition, message.Offset, string(message.Key), string(message.Value))
+	}
+
+	// if err := consumer.sendToDLQ(message); err != nil {
+	// 	logger.Printf("Failed to send message to DLQ: %v. Message: topic=%v, partition=%v, offset=%v, key=%s, value=%s",
+	// 		err, message.Topic, message.Partition, message.Offset, string(message.Key), string(message.Value))
+	// }
+	return fmt.Errorf("failed to process message after 3 attempts: %v", lastErr)
+}
+
 func (consumer *Consumer) processMessage(message *sarama.ConsumerMessage) error {
 	logger.Printf("Received message: topic=%v, partition=%v, offset=%v, key=%s, value=%s\n",
 		message.Topic, message.Partition, message.Offset, string(message.Key), string(message.Value))
 
-	// わざとpanicを起こす
-	panic("panic")
 	var data map[string]interface{}
 	err := json.Unmarshal(message.Value, &data)
 	if err != nil {
@@ -108,6 +131,30 @@ func (consumer *Consumer) processMessage(message *sarama.ConsumerMessage) error 
 		return fmt.Errorf("error saving to database: %v", err)
 	}
 
+	return nil
+}
+
+func (consumer *Consumer) sendToDLQ(message *sarama.ConsumerMessage) error {
+	// Set DLQ topic name
+	dlqTopic := message.Topic + "-dlq"
+
+	// Create a new producer for DLQ
+	producer, err := sarama.NewSyncProducer([]string{"localhost:9092"}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create DLQ producer: %v", err)
+	}
+	defer producer.Close()
+
+	// Send message to DLQ
+	_, _, err = producer.SendMessage(&sarama.ProducerMessage{
+		Topic: dlqTopic,
+		Value: sarama.ByteEncoder(message.Value),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send message to DLQ: %v", err)
+	}
+
+	logger.Printf("Sent message to DLQ: topic=%s", dlqTopic)
 	return nil
 }
 
