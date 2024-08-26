@@ -29,5 +29,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - KAFKA_BROKERS=broker:9092
+    volumes:
+      - .:/app
     depends_on:
       - broker

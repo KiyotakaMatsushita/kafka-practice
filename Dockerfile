@@ -1,12 +1,13 @@
-FROM golang:1.21
+FROM golang:1.22
 
 WORKDIR /app
+
+# airのインストール
+RUN go install github.com/air-verse/air@latest
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
-RUN go build -o main ./cmd
-
-CMD ["./main", "-brokers", "broker:9092"]
+CMD ["air", "-c", ".air.toml"]
