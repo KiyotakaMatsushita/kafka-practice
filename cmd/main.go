@@ -2,7 +2,11 @@ package main
 
 import (
 	"flag"
-	"kafka-sarama-example/internal/consumer"
+	"kafka-sarama-example/internal/pubsub"
+
+	// "kafka-sarama-example/internal/consumer"
+	// "kafka-sarama-example/internal/producer"
+
 	"os"
 	"sync"
 
@@ -19,16 +23,21 @@ func main() {
 	flag.Parse()
 
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(2)
 
 	// go func() {
 	// 	defer wg.Done()
 	// 		producer.Run(*brokers, *version, *topic)
 	// }()
 
+	// go func() {
+	// 	defer wg.Done()
+	// 	consumer.Run(*brokers, *version, *topic)
+	// }()
+
 	go func() {
 		defer wg.Done()
-		consumer.Run(*brokers, *version, *topic)
+		pubsub.Run(*brokers, *version, *topic)
 	}()
 
 	wg.Wait()
